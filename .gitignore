@@ -1,0 +1,23 @@
+# 后端
+target/
+*.class
+*.jar
+*.war
+.idea/
+.vscode/
+*.iml
+HELP.md
+logs/
+*.log
+
+# 前端
+node_modules/
+dist/
+.vscode/
+.idea/
+*.local
+.DS_Store
+Thumbs.db
+
+# 数据库
+*.sql.bak

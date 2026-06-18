@@ -165,6 +165,12 @@ public class InboundOrderServiceImpl extends ServiceImpl<InboundOrderMapper, Inb
         }
         // 写库存
         List<InboundOrderItem> items = itemMapper.selectByOrderId(id);
+        // 老数据兜底校验:所有明细必须有库位
+        for (InboundOrderItem it : items) {
+            if (it.getLocationId() == null) {
+                throw new BizException("明细库位为空,请重新编辑单据补全库位");
+            }
+        }
         List<StockService.StockChangeItem> changes = new ArrayList<>();
         for (InboundOrderItem it : items) {
             StockService.StockChangeItem ch = new StockService.StockChangeItem();
@@ -194,6 +200,19 @@ public class InboundOrderServiceImpl extends ServiceImpl<InboundOrderMapper, Inb
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(Long id) {
+        InboundOrder order = this.getById(id);
+        if (order == null) throw new BizException(ResultCode.DATA_NOT_FOUND);
+        if (!InboundStatusEnum.DRAFT.getCode().equals(order.getStatus())) {
+            throw new BizException("仅草稿状态可删除");
+        }
+        // 先删明细,再删主单(逻辑删除)
+        itemMapper.deleteByOrderId(id);
+        this.removeById(id);
+    }
+
+    @Override
     public Map<String, Object> detail(Long id) {
         InboundOrder order = this.getById(id);
         if (order == null) throw new BizException(ResultCode.DATA_NOT_FOUND);
@@ -210,6 +229,7 @@ public class InboundOrderServiceImpl extends ServiceImpl<InboundOrderMapper, Inb
         }
         for (InboundOrderItem it : items) {
             if (it.getGoodsId() == null) throw new BizException("商品不能为空");
+            if (it.getLocationId() == null) throw new BizException("库位不能为空");
             if (it.getPlanQty() == null || it.getPlanQty() <= 0) throw new BizException("计划数量必须大于0");
         }
     }

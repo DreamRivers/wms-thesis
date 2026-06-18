@@ -71,4 +71,11 @@ public class InboundController {
         inboundService.cancel(id);
         return Result.ok();
     }
+
+    @DeleteMapping("/{id}")
+    @Log(module = "入库管理", action = "删除入库单")
+    public Result<?> delete(@PathVariable Long id) {
+        inboundService.delete(id);
+        return Result.ok();
+    }
 }

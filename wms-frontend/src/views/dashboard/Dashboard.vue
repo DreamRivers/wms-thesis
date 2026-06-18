@@ -80,21 +80,34 @@ const inboundOption = ref<any>({})
 const outboundOption = ref<any>({})
 
 onMounted(async () => {
-  const d: any = await getDashboard()
-  data.value = d.data
-  const inT: any = await getInboundTrend()
-  inboundOption.value = {
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: inT.data.dates || [] },
-    yAxis: { type: 'value' },
-    series: [{ type: 'line', data: inT.data.qtys || [], smooth: true, areaStyle: {}, color: '#67c23a' }]
+  try {
+    const d: any = await getDashboard()
+    data.value = d?.data || {}
+  } catch (e) {
+    console.warn('[dashboard] getDashboard failed', e)
+    data.value = { totalStock: 0, todayIn: 0, todayOut: 0, warningCount: 0, stockSkuCount: 0 }
   }
-  const outT: any = await getOutboundTrend()
-  outboundOption.value = {
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: outT.data.dates || [] },
-    yAxis: { type: 'value' },
-    series: [{ type: 'line', data: outT.data.qtys || [], smooth: true, areaStyle: {}, color: '#e6a23c' }]
+  try {
+    const inT: any = await getInboundTrend()
+    inboundOption.value = {
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: inT?.data?.dates || [] },
+      yAxis: { type: 'value' },
+      series: [{ type: 'line', data: inT?.data?.qtys || [], smooth: true, areaStyle: {}, color: '#67c23a' }]
+    }
+  } catch (e) {
+    console.warn('[dashboard] getInboundTrend failed', e)
+  }
+  try {
+    const outT: any = await getOutboundTrend()
+    outboundOption.value = {
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: outT?.data?.dates || [] },
+      yAxis: { type: 'value' },
+      series: [{ type: 'line', data: outT?.data?.qtys || [], smooth: true, areaStyle: {}, color: '#e6a23c' }]
+    }
+  } catch (e) {
+    console.warn('[dashboard] getOutboundTrend failed', e)
   }
 })
 </script>

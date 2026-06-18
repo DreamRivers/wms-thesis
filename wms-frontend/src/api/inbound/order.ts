@@ -7,4 +7,5 @@ export const submitInbound = (id: number) => request.post(`/inbound/order/submit
 export const auditInbound = (data: any) => request.post('/inbound/order/audit', data)
 export const executeInbound = (id: number, items: any) => request.post(`/inbound/order/execute/${id}`, items)
 export const completeInbound = (id: number) => request.post(`/inbound/order/complete/${id}`)
-export const cancelInbound = (id: number) => request.post(`/inbound/order/cancel/${id}`)
+  export const cancelInbound = (id: number) => request.post(`/inbound/order/cancel/${id}`)
+  export const deleteInbound = (id: number) => request.delete(`/inbound/order/${id}`)

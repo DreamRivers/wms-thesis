@@ -57,10 +57,12 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public Object inboundTrend(String startDate, String endDate) {
-        if (startDate == null) startDate = LocalDate.now().minusDays(7).toString();
+        if (startDate == null) startDate = LocalDate.now().minusDays(6).toString();
         if (endDate == null) endDate = LocalDate.now().toString();
-        LocalDateTime start = LocalDate.parse(startDate).atStartOfDay();
-        LocalDateTime end = LocalDate.parse(endDate).plusDays(1).atStartOfDay();
+        LocalDate startD = LocalDate.parse(startDate);
+        LocalDate endD = LocalDate.parse(endDate);
+        LocalDateTime start = startD.atStartOfDay();
+        LocalDateTime end = endD.plusDays(1).atStartOfDay();
 
         List<InboundOrder> list = inboundMapper.selectList(
                 new LambdaQueryWrapper<InboundOrder>()
@@ -74,30 +76,46 @@ public class ReportServiceImpl implements ReportService {
             String day = o.getCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
             map.merge(day, o.getTotalQty() == null ? 0 : o.getTotalQty(), Integer::sum);
         }
-        List<String> dates = new ArrayList<>(map.keySet());
-        List<Integer> qtys = new ArrayList<>(map.values());
+        // 补全 0 占位 (X 轴完整)
+        List<String> dates = new ArrayList<>();
+        List<Integer> qtys = new ArrayList<>();
+        for (LocalDate d = startD; !d.isAfter(endD); d = d.plusDays(1)) {
+            String key = d.toString();
+            dates.add(key);
+            qtys.add(map.getOrDefault(key, 0));
+        }
         return Map.of("dates", dates, "qtys", qtys);
     }
 
     @Override
     public Object outboundTrend(String startDate, String endDate) {
-        if (startDate == null) startDate = LocalDate.now().minusDays(7).toString();
+        if (startDate == null) startDate = LocalDate.now().minusDays(6).toString();
         if (endDate == null) endDate = LocalDate.now().toString();
-        LocalDateTime start = LocalDate.parse(startDate).atStartOfDay();
-        LocalDateTime end = LocalDate.parse(endDate).plusDays(1).atStartOfDay();
+        LocalDate startD = LocalDate.parse(startDate);
+        LocalDate endD = LocalDate.parse(endDate);
+        LocalDateTime start = startD.atStartOfDay();
+        LocalDateTime end = endD.plusDays(1).atStartOfDay();
 
         List<OutboundOrder> list = outboundMapper.selectList(
                 new LambdaQueryWrapper<OutboundOrder>()
                         .ge(OutboundOrder::getCreateTime, start)
                         .lt(OutboundOrder::getCreateTime, end)
-                        .eq(OutboundOrder::getStatus, "SHIPPED"));
+                        .eq(OutboundOrder::getStatus, "FINISHED"));
 
         Map<String, Integer> map = new TreeMap<>();
         for (OutboundOrder o : list) {
             String day = o.getCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
             map.merge(day, o.getTotalQty() == null ? 0 : o.getTotalQty(), Integer::sum);
         }
-        return Map.of("dates", new ArrayList<>(map.keySet()), "qtys", new ArrayList<>(map.values()));
+        // 补全 0 占位
+        List<String> dates = new ArrayList<>();
+        List<Integer> qtys = new ArrayList<>();
+        for (LocalDate d = startD; !d.isAfter(endD); d = d.plusDays(1)) {
+            String key = d.toString();
+            dates.add(key);
+            qtys.add(map.getOrDefault(key, 0));
+        }
+        return Map.of("dates", dates, "qtys", qtys);
     }
 
     @Override

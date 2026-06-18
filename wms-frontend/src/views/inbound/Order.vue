@@ -32,10 +32,11 @@
         </template>
       </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="170" />
-      <el-table-column label="操作" width="280">
+      <el-table-column label="操作" width="340" fixed="right">
         <template #default="{ row }">
           <el-button v-if="row.status === 'DRAFT'" size="small" @click="onEdit(row)">编辑</el-button>
           <el-button v-if="row.status === 'DRAFT'" size="small" type="primary" @click="onSubmit(row)">提交</el-button>
+          <el-button v-if="row.status === 'DRAFT'" size="small" type="danger" @click="onDelete(row)">删除</el-button>
           <el-button v-if="row.status === 'PENDING'" size="small" type="success" @click="onAudit(row, true)">审核通过</el-button>
           <el-button v-if="row.status === 'PENDING'" size="small" type="danger" @click="onAudit(row, false)">驳回</el-button>
           <el-button v-if="row.status === 'APPROVED'" size="small" type="warning" @click="onExecute(row)">执行</el-button>
@@ -76,7 +77,7 @@
           </el-table-column>
           <el-table-column label="库位" width="180">
             <template #default="{ row }">
-              <el-select v-model="row.locationId" style="width:100%">
+              <el-select v-model="row.locationId" placeholder="请选择库位" style="width:100%" clearable>
                 <el-option v-for="l in locations" :key="l.id" :label="l.locationCode" :value="l.id" />
               </el-select>
             </template>
@@ -119,7 +120,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { pageInbound, saveInbound, submitInbound, auditInbound, executeInbound, completeInbound, getInbound } from '@/api/inbound/order'
+import { pageInbound, saveInbound, submitInbound, auditInbound, executeInbound, completeInbound, getInbound, deleteInbound } from '@/api/inbound/order'
 import { listAllGoods, listAllSuppliers, listAllWarehouses, listLocationsByWarehouse } from '@/api/basic/goods'
 
 const query = reactive({ pageNum: 1, pageSize: 10, orderNo: '', status: '' })
@@ -180,6 +181,12 @@ async function loadAuxData() {
 async function onSave() {
   if (!editing.warehouseId) { ElMessage.warning('请选择仓库'); return }
   if (!editing.items.length) { ElMessage.warning('请添加明细'); return }
+  for (let i = 0; i < editing.items.length; i++) {
+    const it = editing.items[i]
+    if (!it.goodsId) { ElMessage.warning(`第 ${i+1} 行: 请选择商品`); return }
+    if (!it.locationId) { ElMessage.warning(`第 ${i+1} 行: 请选择库位`); return }
+    if (!it.planQty || it.planQty <= 0) { ElMessage.warning(`第 ${i+1} 行: 计划数量必须大于0`); return }
+  }
   await saveInbound(editing)
   ElMessage.success('保存成功')
   dialogVisible.value = false
@@ -190,6 +197,13 @@ async function onSubmit(row: any) {
   await ElMessageBox.confirm(`确定提交单据 ${row.orderNo}?`, '提示')
   await submitInbound(row.id)
   ElMessage.success('已提交')
+  loadData()
+}
+
+async function onDelete(row: any) {
+  await ElMessageBox.confirm(`确定删除单据 ${row.orderNo}?删除后无法恢复`, '警告', { type: 'warning' })
+  await deleteInbound(row.id)
+  ElMessage.success('已删除')
   loadData()
 }
 

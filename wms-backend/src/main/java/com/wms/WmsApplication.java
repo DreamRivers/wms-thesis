@@ -3,6 +3,8 @@ package com.wms;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -12,7 +14,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * @author WMS Team
  * @since 2026-06-01
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {SecurityAutoConfiguration.class, SecurityFilterAutoConfiguration.class})
 @EnableScheduling
 @EnableAsync
 @MapperScan("com.wms.modules.**.mapper")

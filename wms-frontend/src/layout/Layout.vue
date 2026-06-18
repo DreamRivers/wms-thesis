@@ -42,7 +42,9 @@
       </el-header>
       <el-main>
         <router-view v-slot="{ Component }">
-          <component :is="Component" />
+          <keep-alive :include="cachedViews">
+            <component :is="Component" />
+          </keep-alive>
         </router-view>
       </el-main>
     </el-container>
@@ -75,6 +77,18 @@ const menus = [
 ]
 
 const active = computed(() => route.path)
+
+// 需要被 keep-alive 缓存的页面 name
+const cachedViews = [
+  'Dashboard',
+  'User', 'Role', 'Menu', 'OperationLog',
+  'Goods', 'Category', 'Warehouse', 'Location', 'Supplier',
+  'InboundOrder', 'InboundAudit',
+  'OutboundOrder', 'OutboundApply', 'OutboundApproval',
+  'StockList', 'StockRecord', 'StockTaking', 'StockWarning',
+  'ReportInbound', 'ReportOutbound', 'ReportInventory',
+  'Profile'
+]
 
 onMounted(async () => {
   if (!userStore.userInfo.userId) {

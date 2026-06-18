@@ -22,47 +22,51 @@ const routes = [
       // 系统管理
       {
         path: 'system/user',
+        name: 'User',
         component: () => import('@/views/system/User.vue'),
         meta: { title: '用户管理', icon: 'User' }
       },
       {
         path: 'system/role',
+        name: 'Role',
         component: () => import('@/views/system/Role.vue'),
         meta: { title: '角色管理', icon: 'UserFilled' }
       },
       {
         path: 'system/menu',
+        name: 'Menu',
         component: () => import('@/views/system/Menu.vue'),
         meta: { title: '菜单管理', icon: 'Menu' }
       },
       {
         path: 'system/log',
+        name: 'OperationLog',
         component: () => import('@/views/system/OperationLog.vue'),
         meta: { title: '操作日志', icon: 'Document' }
       },
       // 基础数据
-      { path: 'basic/goods', component: () => import('@/views/basic/Goods.vue'), meta: { title: '商品管理', icon: 'Goods' } },
-      { path: 'basic/category', component: () => import('@/views/basic/Category.vue'), meta: { title: '商品分类', icon: 'Folder' } },
-      { path: 'basic/warehouse', component: () => import('@/views/basic/Warehouse.vue'), meta: { title: '仓库管理', icon: 'House' } },
-      { path: 'basic/location', component: () => import('@/views/basic/Location.vue'), meta: { title: '库位管理', icon: 'Grid' } },
-      { path: 'basic/supplier', component: () => import('@/views/basic/Supplier.vue'), meta: { title: '供应商管理', icon: 'Avatar' } },
+      { path: 'basic/goods', name: 'Goods', component: () => import('@/views/basic/Goods.vue'), meta: { title: '商品管理', icon: 'Goods' } },
+      { path: 'basic/category', name: 'Category', component: () => import('@/views/basic/Category.vue'), meta: { title: '商品分类', icon: 'Folder' } },
+      { path: 'basic/warehouse', name: 'Warehouse', component: () => import('@/views/basic/Warehouse.vue'), meta: { title: '仓库管理', icon: 'House' } },
+      { path: 'basic/location', name: 'Location', component: () => import('@/views/basic/Location.vue'), meta: { title: '库位管理', icon: 'Grid' } },
+      { path: 'basic/supplier', name: 'Supplier', component: () => import('@/views/basic/Supplier.vue'), meta: { title: '供应商管理', icon: 'Avatar' } },
       // 入库
-      { path: 'inbound/order', component: () => import('@/views/inbound/Order.vue'), meta: { title: '入库单列表', icon: 'List' } },
-      { path: 'inbound/audit', component: () => import('@/views/inbound/Audit.vue'), meta: { title: '入库单审核', icon: 'CircleCheck' } },
+      { path: 'inbound/order', name: 'InboundOrder', component: () => import('@/views/inbound/Order.vue'), meta: { title: '入库单列表', icon: 'List' } },
+      { path: 'inbound/audit', name: 'InboundAudit', component: () => import('@/views/inbound/Audit.vue'), meta: { title: '入库单审核', icon: 'CircleCheck' } },
       // 出库
-      { path: 'outbound/order', component: () => import('@/views/outbound/Order.vue'), meta: { title: '出库单列表', icon: 'List' } },
-      { path: 'outbound/apply', component: () => import('@/views/outbound/Apply.vue'), meta: { title: '出库申请', icon: 'EditPen' } },
-      { path: 'outbound/approval', component: () => import('@/views/outbound/Approval.vue'), meta: { title: '出库审批', icon: 'CircleCheck' } },
+      { path: 'outbound/order', name: 'OutboundOrder', component: () => import('@/views/outbound/Order.vue'), meta: { title: '出库单列表', icon: 'List' } },
+      { path: 'outbound/apply', name: 'OutboundApply', component: () => import('@/views/outbound/Apply.vue'), meta: { title: '出库申请', icon: 'EditPen' } },
+      { path: 'outbound/approval', name: 'OutboundApproval', component: () => import('@/views/outbound/Approval.vue'), meta: { title: '出库审批', icon: 'CircleCheck' } },
       // 库存
-      { path: 'stock/list', component: () => import('@/views/stock/List.vue'), meta: { title: '实时库存', icon: 'Box' } },
-      { path: 'stock/record', component: () => import('@/views/stock/Record.vue'), meta: { title: '库存流水', icon: 'Tickets' } },
-      { path: 'stock/taking', component: () => import('@/views/stock/Taking.vue'), meta: { title: '盘点管理', icon: 'Histogram' } },
-      { path: 'stock/warning', component: () => import('@/views/stock/Warning.vue'), meta: { title: '库存预警', icon: 'Warning' } },
+      { path: 'stock/list', name: 'StockList', component: () => import('@/views/stock/List.vue'), meta: { title: '实时库存', icon: 'Box' } },
+      { path: 'stock/record', name: 'StockRecord', component: () => import('@/views/stock/Record.vue'), meta: { title: '库存流水', icon: 'Tickets' } },
+      { path: 'stock/taking', name: 'StockTaking', component: () => import('@/views/stock/Taking.vue'), meta: { title: '盘点管理', icon: 'Histogram' } },
+      { path: 'stock/warning', name: 'StockWarning', component: () => import('@/views/stock/Warning.vue'), meta: { title: '库存预警', icon: 'Warning' } },
       // 报表
-      { path: 'report/inbound', component: () => import('@/views/report/Inbound.vue'), meta: { title: '入库统计', icon: 'TrendCharts' } },
-      { path: 'report/outbound', component: () => import('@/views/report/Outbound.vue'), meta: { title: '出库统计', icon: 'PieChart' } },
-      { path: 'report/inventory', component: () => import('@/views/report/Inventory.vue'), meta: { title: '库存报表', icon: 'DataLine' } },
-      { path: 'profile', component: () => import('@/views/profile/Profile.vue'), meta: { title: '个人中心' } }
+      { path: 'report/inbound', name: 'ReportInbound', component: () => import('@/views/report/Inbound.vue'), meta: { title: '入库统计', icon: 'TrendCharts' } },
+      { path: 'report/outbound', name: 'ReportOutbound', component: () => import('@/views/report/Outbound.vue'), meta: { title: '出库统计', icon: 'PieChart' } },
+      { path: 'report/inventory', name: 'ReportInventory', component: () => import('@/views/report/Inventory.vue'), meta: { title: '库存报表', icon: 'DataLine' } },
+      { path: 'profile', name: 'Profile', component: () => import('@/views/profile/Profile.vue'), meta: { title: '个人中心' } }
     ]
   },
   { path: '/403', component: () => import('@/views/error/403.vue') },
@@ -76,9 +80,14 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
+  console.log('[router] beforeEach', from.path, '->', to.path, 'token=', token ? token.substring(0, 8) + '...' : 'null')
   if (to.path === '/login') return next()
   if (!token) return next('/login')
   next()
+})
+
+router.onError((err) => {
+  console.error('[router] navigation error', err)
 })
 
 export default router

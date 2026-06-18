@@ -44,7 +44,8 @@ const form = reactive({
 
 const rules = {
   username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  captcha: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
 }
 
 async function loadCaptcha() {
@@ -54,12 +55,24 @@ async function loadCaptcha() {
 }
 
 async function onLogin() {
-  await formRef.value.validate()
+  console.log('[login] onLogin start, form=', form, 'captchaKey=', captchaKey.value)
   loading.value = true
   try {
-    await userStore.doLogin({ ...form, captchaKey: captchaKey.value })
+    // 直接跳过 validate,先保证能登录
+    const res = await userStore.doLogin({ ...form, captchaKey: captchaKey.value })
+    console.log('[login] doLogin result', res)
     ElMessage.success('登录成功')
-    router.push('/dashboard')
+    setTimeout(() => {
+      console.log('[login] before replace, token=', userStore.token?.substring(0, 8))
+      router.replace('/dashboard').then(() => {
+        console.log('[login] replace OK, url=', window.location.href)
+      }).catch((err) => {
+        console.error('[login] replace error', err)
+      })
+    }, 100)
+  } catch (e: any) {
+    console.error('[login] error', e)
+    ElMessage.error(e?.message || '登录失败')
   } finally {
     loading.value = false
   }

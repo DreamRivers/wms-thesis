@@ -33,6 +33,9 @@ public interface InboundOrderService extends IService<InboundOrder> {
     /** 作废 */
     void cancel(Long id);
 
+    /** 物理删除(草稿) */
+    void delete(Long id);
+
     /** 详情(含 items) */
     Map<String, Object> detail(Long id);
 }

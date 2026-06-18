@@ -183,9 +183,13 @@ public class OutboundOrderServiceImpl extends ServiceImpl<OutboundOrderMapper, O
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void complete(Long id) {
         OutboundOrder order = this.getById(id);
         if (order == null) throw new BizException(ResultCode.DATA_NOT_FOUND);
+        if (!OutboundStatusEnum.SHIPPED.getCode().equals(order.getStatus())) {
+            throw new BizException("仅已发货状态可完成");
+        }
         order.setStatus(OutboundStatusEnum.FINISHED.getCode());
         order.setCompleteTime(LocalDateTime.now());
         this.updateById(order);

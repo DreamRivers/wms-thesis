@@ -88,7 +88,20 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     public List<RouteVO> getMenuRoutes() {
         Long uid = StpUtil.getLoginIdAsLong();
         List<SysMenu> menus = menuMapper.selectMenusByUserId(uid);
-        return buildRoutes(menus, 0L);
+        // 全部是一级菜单, 直接转 RouteVO
+        return menus.stream().map(m -> {
+            RouteVO r = new RouteVO();
+            r.setPath(m.getPath());
+            r.setComponent(m.getComponent());
+            r.setName(m.getMenuName());
+            RouteVO.MetaVO meta = new RouteVO.MetaVO();
+            meta.setTitle(m.getMenuName());
+            meta.setIcon(m.getIcon());
+            meta.setHidden(m.getVisible() == null || m.getVisible() == 0);
+            r.setMeta(meta);
+            r.setChildren(new java.util.ArrayList<>());
+            return r;
+        }).collect(Collectors.toList());
     }
 
     private List<RouteVO> buildRoutes(List<SysMenu> all, Long parentId) {

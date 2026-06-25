@@ -148,4 +148,13 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
         map.put("list", res.getRecords());
         return map;
     }
+
+    @Override
+    public Integer sumLocationQty(Long locationId) {
+        if (locationId == null) return 0;
+        LambdaQueryWrapper<Stock> q = new LambdaQueryWrapper<>();
+        q.eq(Stock::getLocationId, locationId);
+        List<Stock> list = this.list(q);
+        return list.stream().mapToInt(s -> s.getQuantity() == null ? 0 : s.getQuantity()).sum();
+    }
 }

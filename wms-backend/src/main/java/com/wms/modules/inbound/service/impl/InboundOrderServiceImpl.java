@@ -19,7 +19,11 @@ import com.wms.modules.inbound.mapper.InboundOrderItemMapper;
 import com.wms.modules.inbound.mapper.InboundOrderMapper;
 import com.wms.modules.inbound.service.InboundOrderService;
 import com.wms.modules.stock.service.StockService;
+import com.wms.modules.basic.entity.Location;
+import com.wms.modules.basic.mapper.LocationMapper;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -36,10 +40,17 @@ public class InboundOrderServiceImpl extends ServiceImpl<InboundOrderMapper, Inb
 
     private final InboundOrderItemMapper itemMapper;
     private final StockService stockService;
+    private final LocationMapper locationMapper;
+    private final InboundOrderServiceImpl self;  // self-injection for REQUIRES_NEW
 
-    public InboundOrderServiceImpl(InboundOrderItemMapper itemMapper, StockService stockService) {
+    public InboundOrderServiceImpl(InboundOrderItemMapper itemMapper,
+                                    StockService stockService,
+                                    LocationMapper locationMapper,
+                                    @Lazy InboundOrderServiceImpl self) {
         this.itemMapper = itemMapper;
         this.stockService = stockService;
+        this.locationMapper = locationMapper;
+        this.self = self;
     }
 
     @Override
@@ -156,7 +167,6 @@ public class InboundOrderServiceImpl extends ServiceImpl<InboundOrderMapper, Inb
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void complete(Long id) {
         InboundOrder order = this.getById(id);
         if (order == null) throw new BizException(ResultCode.DATA_NOT_FOUND);
@@ -171,6 +181,56 @@ public class InboundOrderServiceImpl extends ServiceImpl<InboundOrderMapper, Inb
                 throw new BizException("明细库位为空,请重新编辑单据补全库位");
             }
         }
+        // 库位容量校验: 按库位分组累加,不能超出库位容量
+        Map<Long, Integer> inQtyByLoc = new HashMap<>();
+        for (InboundOrderItem it : items) {
+            int q = it.getActualQty() == null ? 0 : it.getActualQty();
+            inQtyByLoc.merge(it.getLocationId(), q, Integer::sum);
+        }
+        String capacityError = null;
+        for (Map.Entry<Long, Integer> e : inQtyByLoc.entrySet()) {
+            Location loc = locationMapper.selectById(e.getKey());
+            if (loc == null) {
+                throw new BizException("库位ID=" + e.getKey() + " 不存在");
+            }
+            if (loc.getCapacity() != null && loc.getCapacity().compareTo(BigDecimal.ZERO) > 0) {
+                int currentQty = stockService.sumLocationQty(e.getKey());
+                if (currentQty + e.getValue() > loc.getCapacity().intValue()) {
+                    capacityError = String.format(
+                        "库位[%s]容量不足: 已用 %d + 本次入库 %d = %d, 超过容量 %d",
+                        loc.getLocationCode(), currentQty, e.getValue(),
+                        currentQty + e.getValue(), loc.getCapacity().intValue());
+                    break;
+                }
+            }
+        }
+        if (capacityError != null) {
+            // 独立新事务更新为 REJECTED, 不受主事务回滚影响
+            self.autoReject(id, capacityError);
+            throw new BizException(capacityError);
+        }
+        // 写库存 + FINISHED (独立新事务)
+        self.doCompleteStock(id, items, order);
+    }
+
+    /**
+     * 独立新事务: 把入库单自动改为 REJECTED
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public void autoReject(Long id, String reason) {
+        InboundOrder order = this.getById(id);
+        if (order == null) return;
+        order.setStatus(InboundStatusEnum.REJECTED.getCode());
+        order.setRemark("系统自动驳回: " + reason);
+        order.setCompleteTime(LocalDateTime.now());
+        this.updateById(order);
+    }
+
+    /**
+     * 独立新事务: 写库存 + FINISHED
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public void doCompleteStock(Long id, List<InboundOrderItem> items, InboundOrder order) {
         List<StockService.StockChangeItem> changes = new ArrayList<>();
         for (InboundOrderItem it : items) {
             StockService.StockChangeItem ch = new StockService.StockChangeItem();

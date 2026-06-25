@@ -22,6 +22,9 @@ public interface StockService extends IService<Stock> {
     /** 分页查询库存流水 */
     Map<String, Object> pageRecord(PageQuery query, Long goodsId, String businessType);
 
+    /** 统计某库位现库存总量(quantity 之和,用于容量校验) */
+    Integer sumLocationQty(Long locationId);
+
     /** 库存变动项 */
     @lombok.Data
     @lombok.AllArgsConstructor

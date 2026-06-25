@@ -1,12 +1,14 @@
 <template>
   <el-card>
     <div class="page-toolbar">
-      <h3>📋 盘点管理</h3>
+      <h3>盘点管理</h3>
       <el-button type="primary" @click="onCreate">新建盘点单</el-button>
     </div>
     <el-table :data="list" border>
-      <el-table-column prop="takeNo" label="盘点单号" width="220" />
-      <el-table-column prop="warehouseId" label="仓库" width="80" />
+      <el-table-column prop="takeNo" label="盘点单号" width="200" />
+      <el-table-column label="仓库" width="120">
+        <template #default="{ row }">{{ getWarehouseName(row.warehouseId) }}</template>
+      </el-table-column>
       <el-table-column prop="takeType" label="类型" width="100">
         <template #default="{ row }">{{ ['', '全盘', '抽盘', '动态'][row.takeType] }}</template>
       </el-table-column>
@@ -47,11 +49,17 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailVisible" title="盘点明细" width="800px">
+    <el-dialog v-model="detailVisible" title="盘点明细" width="1000px">
       <el-table :data="items" border>
         <el-table-column prop="goodsId" label="商品ID" width="80" />
+        <el-table-column label="商品名称" width="160">
+          <template #default="{ row }">{{ getGoodsName(row.goodsId) }}</template>
+        </el-table-column>
         <el-table-column prop="locationId" label="库位ID" width="80" />
-        <el-table-column prop="batchNo" label="批次" width="160" />
+        <el-table-column label="库位编码" width="160">
+          <template #default="{ row }">{{ getLocationCode(row.locationId) }}</template>
+        </el-table-column>
+        <el-table-column prop="batchNo" label="批次" width="120" />
         <el-table-column prop="systemQty" label="系统数量" width="100" />
         <el-table-column label="实盘数量" width="120">
           <template #default="{ row }">
@@ -60,7 +68,7 @@
         </el-table-column>
         <el-table-column label="差异" width="80">
           <template #default="{ row }">
-            <span :style="{ color: (row.actualQty - row.systemQty) === 0 ? '#67c23a' : '#f56c6c' }">
+            <span :style="{ color: ((row.actualQty || 0) - (row.systemQty || 0)) === 0 ? '#67c23a' : '#f56c6c' }">
               {{ (row.actualQty || 0) - (row.systemQty || 0) }}
             </span>
           </template>
@@ -77,7 +85,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { pageTaking, createTaking, getTaking, recordTaking, adjustTaking } from '@/api/stock/stock'
-import { listAllWarehouses } from '@/api/basic/goods'
+import { listAllGoods, listAllWarehouses } from '@/api/basic/goods'
+import { pageLocations } from '@/api/basic/warehouse'
 
 const list = ref<any[]>([])
 const dialogVisible = ref(false)
@@ -86,6 +95,35 @@ const items = ref<any[]>([])
 const currentTakeId = ref<number>()
 const form = reactive<any>({ warehouseId: null, takeType: 1, remark: '' })
 const warehouses = ref<any[]>([])
+const goods = ref<any[]>([])
+const locations = ref<any[]>([])
+
+function getWarehouseName(id: number): string {
+  if (!id) return '-'
+  const w = warehouses.value.find(w => w.id === id)
+  return w ? w.warehouseName : `#${id}`
+}
+function getGoodsName(id: number): string {
+  if (!id) return '-'
+  const g = goods.value.find(g => g.id === id)
+  return g ? g.goodsName : `#${id}`
+}
+function getLocationCode(id: number): string {
+  if (!id) return '-'
+  const l = locations.value.find(l => l.id === id)
+  return l ? (l.locationCode || l.code) : `#${id}`
+}
+
+async function loadAllDict() {
+  const [g, w, l] = await Promise.all([
+    listAllGoods(),
+    listAllWarehouses(),
+    pageLocations({ pageNum: 1, pageSize: 1000 })
+  ])
+  goods.value = g.data || []
+  warehouses.value = w.data || []
+  locations.value = l.data?.list || []
+}
 
 async function loadData() {
   const res: any = await pageTaking({ pageNum: 1, pageSize: 20 })
@@ -97,8 +135,7 @@ async function onCreate() {
   form.takeType = 1
   form.remark = ''
   dialogVisible.value = true
-  const w: any = await listAllWarehouses()
-  warehouses.value = w.data
+  await loadAllDict()
 }
 
 async function onSubmit() {
@@ -113,6 +150,7 @@ async function onDetail(row: any) {
   items.value = res.data.items
   currentTakeId.value = row.id
   detailVisible.value = true
+  await loadAllDict()
 }
 
 async function onSaveDetail() {
@@ -127,5 +165,8 @@ async function onAdjust(row: any) {
   loadData()
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  await loadData()
+  await loadAllDict()
+})
 </script>

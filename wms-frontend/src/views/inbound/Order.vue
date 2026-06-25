@@ -21,18 +21,28 @@
     </div>
 
     <el-table :data="list" border stripe>
-      <el-table-column prop="orderNo" label="入库单号" width="220" />
-      <el-table-column prop="supplierId" label="供应商" width="80" />
-      <el-table-column prop="warehouseId" label="仓库" width="80" />
-      <el-table-column prop="totalQty" label="总数量" width="100" />
-      <el-table-column prop="totalAmount" label="总金额" width="120" />
+      <el-table-column prop="orderNo" label="入库单号" width="200" />
+      <el-table-column label="供应商" width="120">
+        <template #default="{ row }">{{ getSupplierName(row.supplierId) }}</template>
+      </el-table-column>
+      <el-table-column label="仓库" width="120">
+        <template #default="{ row }">{{ getWarehouseName(row.warehouseId) }}</template>
+      </el-table-column>
+      <el-table-column prop="totalQty" label="总数量" width="80" />
+      <el-table-column prop="totalAmount" label="总金额" width="100" />
+      <el-table-column label="入库商品" min-width="180">
+        <template #default="{ row }">
+          <span>共 {{ row.totalQty || 0 }} 件</span>
+          <el-button link type="primary" size="small" @click="onDetail(row)">查看明细</el-button>
+        </template>
+      </el-table-column>
       <el-table-column label="状态" width="100">
         <template #default="{ row }">
           <el-tag :type="statusTag(row.status)">{{ statusText(row.status) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="170" />
-      <el-table-column label="操作" width="340" fixed="right">
+      <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
           <el-button v-if="row.status === 'DRAFT'" size="small" @click="onEdit(row)">编辑</el-button>
           <el-button v-if="row.status === 'DRAFT'" size="small" type="primary" @click="onSubmit(row)">提交</el-button>
@@ -68,14 +78,14 @@
         <el-divider>商品明细</el-divider>
         <el-button size="small" @click="addItem">添加行</el-button>
         <el-table :data="editing.items" border size="small" style="margin-top:8px">
-          <el-table-column label="商品" width="250">
+          <el-table-column label="商品" width="200">
             <template #default="{ row }">
               <el-select v-model="row.goodsId" filterable style="width:100%">
                 <el-option v-for="g in goods" :key="g.id" :label="g.goodsName" :value="g.id" />
               </el-select>
             </template>
           </el-table-column>
-          <el-table-column label="库位" width="180">
+          <el-table-column label="库位" width="160">
             <template #default="{ row }">
               <el-select v-model="row.locationId" placeholder="请选择库位" style="width:100%" clearable>
                 <el-option v-for="l in locations" :key="l.id" :label="l.locationCode" :value="l.id" />
@@ -95,33 +105,42 @@
     </el-dialog>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="detailVisible" title="入库单详情" width="700px">
+    <el-dialog v-if="detailVisible" v-model="detailVisible" title="入库单详情" width="900px" append-to-body>
       <el-descriptions :column="2" border>
         <el-descriptions-item label="单号">{{ detail.order?.orderNo }}</el-descriptions-item>
         <el-descriptions-item label="状态"><el-tag :type="statusTag(detail.order?.status)">{{ statusText(detail.order?.status) }}</el-tag></el-descriptions-item>
-        <el-descriptions-item label="供应商">{{ detail.order?.supplierId }}</el-descriptions-item>
-        <el-descriptions-item label="仓库">{{ detail.order?.warehouseId }}</el-descriptions-item>
+        <el-descriptions-item label="供应商">{{ getSupplierName(detail.order?.supplierId) }}</el-descriptions-item>
+        <el-descriptions-item label="仓库">{{ getWarehouseName(detail.order?.warehouseId) }}</el-descriptions-item>
         <el-descriptions-item label="总数量">{{ detail.order?.totalQty }}</el-descriptions-item>
         <el-descriptions-item label="总金额">{{ detail.order?.totalAmount }}</el-descriptions-item>
       </el-descriptions>
       <el-divider>明细</el-divider>
       <el-table :data="detail.items || []" size="small" border>
-        <el-table-column prop="goodsId" label="商品ID" />
-        <el-table-column prop="locationId" label="库位ID" />
-        <el-table-column prop="batchNo" label="批次" />
-        <el-table-column prop="planQty" label="计划" />
-        <el-table-column prop="actualQty" label="实收" />
-        <el-table-column prop="unitPrice" label="单价" />
+        <el-table-column prop="goodsId" label="商品ID" width="80" />
+        <el-table-column label="商品名称" width="160">
+          <template #default="{ row }">{{ getGoodsName(row.goodsId) }}</template>
+        </el-table-column>
+        <el-table-column prop="locationId" label="库位ID" width="80" />
+        <el-table-column label="库位编码" width="140">
+          <template #default="{ row }">{{ getLocationCode(row.locationId) }}</template>
+        </el-table-column>
+        <el-table-column prop="batchNo" label="批次" width="120" />
+        <el-table-column prop="planQty" label="计划" width="80" />
+        <el-table-column prop="actualQty" label="实收" width="80" />
+        <el-table-column prop="unitPrice" label="单价" width="100" />
       </el-table>
     </el-dialog>
   </el-card>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { pageInbound, saveInbound, submitInbound, auditInbound, executeInbound, completeInbound, getInbound, deleteInbound } from '@/api/inbound/order'
 import { listAllGoods, listAllSuppliers, listAllWarehouses, listLocationsByWarehouse } from '@/api/basic/goods'
+import { pageLocations } from '@/api/basic/warehouse'
+import { pageSuppliers } from '@/api/basic/supplier'
+import { pageUser } from '@/api/system/user'
 
 const query = reactive({ pageNum: 1, pageSize: 10, orderNo: '', status: '' })
 const list = ref<any[]>([])
@@ -135,6 +154,7 @@ const goods = ref<any[]>([])
 const suppliers = ref<any[]>([])
 const warehouses = ref<any[]>([])
 const locations = ref<any[]>([])
+const users = ref<any[]>([])
 
 const STATUS_MAP: Record<string, [string, string]> = {
   DRAFT: ['草稿', 'info'], PENDING: ['待审核', 'warning'], APPROVED: ['已审核', 'primary'],
@@ -142,6 +162,34 @@ const STATUS_MAP: Record<string, [string, string]> = {
 }
 const statusText = (s: string) => STATUS_MAP[s]?.[0] || s
 const statusTag = (s: string): any => STATUS_MAP[s]?.[1] || 'info'
+
+// 字典 join
+function getSupplierName(id: number): string {
+  if (!id) return '-'
+  const s = suppliers.value.find(s => s.id === id)
+  return s ? s.supplierName : `#${id}`
+}
+function getWarehouseName(id: number): string {
+  if (!id) return '-'
+  const w = warehouses.value.find(w => w.id === id)
+  return w ? w.warehouseName : `#${id}`
+}
+function getGoodsName(id: number): string {
+  if (!id) return '-'
+  const g = goods.value.find(g => g.id === id)
+  return g ? g.goodsName : `#${id}`
+}
+function getLocationCode(id: number): string {
+  if (!id) return '-'
+  const l = locations.value.find(l => l.id === id)
+  return l ? (l.locationCode || l.code) : `#${id}`
+}
+function getOrderGoodsText(row: any): string {
+  if (!row.items || !row.items.length) return '-'
+  const names = row.items.map((it: any) => `${getGoodsName(it.goodsId)}×${it.planQty || 0}`).slice(0, 2)
+  const more = row.items.length > 2 ? ` 等${row.items.length}种` : ''
+  return names.join('，') + more
+}
 
 async function loadData() {
   const res: any = await pageInbound(query)
@@ -152,6 +200,40 @@ async function loadData() {
 function addItem() {
   editing.items.push({ goodsId: null, locationId: null, batchNo: '', planQty: 1, unitPrice: 0 })
 }
+
+async function loadAllDict() {
+  // 加载所有字典
+  const [g, w, l, s, u] = await Promise.all([
+    listAllGoods(),
+    listAllWarehouses(),
+    pageLocations({ pageNum: 1, pageSize: 1000 }),
+    pageSuppliers({ pageNum: 1, pageSize: 1000 }),
+    pageUser({ pageNum: 1, pageSize: 1000 })
+  ])
+  goods.value = g.data || []
+  warehouses.value = w.data || []
+  locations.value = l.data?.list || []
+  suppliers.value = s.data?.list || []
+  users.value = u.data?.list || []
+}
+
+async function loadAuxData() {
+  await loadAllDict()
+  if (editing.warehouseId) {
+    const l: any = await listLocationsByWarehouse(editing.warehouseId)
+    locations.value = l.data || []
+  }
+}
+
+watch(() => editing.warehouseId, async (newId) => {
+  if (newId) {
+    const l: any = await listLocationsByWarehouse(newId)
+    locations.value = l.data || []
+  } else {
+    locations.value = []
+  }
+  editing.items.forEach((it: any) => { it.locationId = null })
+})
 
 async function onAdd() {
   Object.assign(editing, { id: null, supplierId: null, warehouseId: null, remark: '', items: [] })
@@ -165,17 +247,6 @@ async function onEdit(row: any) {
   Object.assign(editing, res.data.order, { items: res.data.items })
   dialogVisible.value = true
   await loadAuxData()
-}
-
-async function loadAuxData() {
-  const [g, s, w] = await Promise.all([listAllGoods(), listAllSuppliers(), listAllWarehouses()])
-  goods.value = g.data
-  suppliers.value = s.data
-  warehouses.value = w.data
-  if (editing.warehouseId) {
-    const l: any = await listLocationsByWarehouse(editing.warehouseId)
-    locations.value = l.data
-  }
 }
 
 async function onSave() {
@@ -215,7 +286,6 @@ async function onAudit(row: any, pass: boolean) {
 }
 
 async function onExecute(row: any) {
-  // 简化:直接调用 execute
   const res: any = await getInbound(row.id)
   await executeInbound(row.id, res.data.items)
   ElMessage.success('已执行,等待完成入库')
@@ -224,9 +294,15 @@ async function onExecute(row: any) {
 
 async function onComplete(row: any) {
   await ElMessageBox.confirm(`确认完成入库 ${row.orderNo}?完成后将写入库存`, '提示', { type: 'warning' })
-  await completeInbound(row.id)
-  ElMessage.success('入库完成,库存已更新')
-  loadData()
+  try {
+    await completeInbound(row.id)
+    ElMessage.success('入库完成,库存已更新')
+  } catch (e) {
+    // axios 拦截器已经自动弹过错误信息 (ElMessage.error), 这里只需 catch 阻止 unhandled rejection
+  } finally {
+    // 无论成功失败都刷新列表, 让用户看到最新状态
+    loadData()
+  }
 }
 
 async function onDetail(row: any) {
@@ -235,5 +311,8 @@ async function onDetail(row: any) {
   detailVisible.value = true
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  await loadData()
+  await loadAllDict()
+})
 </script>

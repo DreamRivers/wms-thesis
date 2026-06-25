@@ -58,9 +58,14 @@ async function onLogin() {
   console.log('[login] onLogin start, form=', form, 'captchaKey=', captchaKey.value)
   loading.value = true
   try {
-    // 直接跳过 validate,先保证能登录
     const res = await userStore.doLogin({ ...form, captchaKey: captchaKey.value })
     console.log('[login] doLogin result', res)
+    // 加载菜单路由
+    await userStore.loadRoutes()
+    // 把可用 path 存 localStorage (去掉前导 /)
+    const paths = (userStore.routes || []).map((r: any) => (r.path || '').replace(/^\//, ''))
+    localStorage.setItem('user_routes', JSON.stringify(paths))
+    console.log('[login] user_routes saved:', paths)
     ElMessage.success('登录成功')
     setTimeout(() => {
       console.log('[login] before replace, token=', userStore.token?.substring(0, 8))

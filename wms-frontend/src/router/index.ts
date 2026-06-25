@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
 const Layout = () => import('@/layout/Layout.vue')
 
@@ -32,12 +33,7 @@ const routes = [
         component: () => import('@/views/system/Role.vue'),
         meta: { title: '角色管理', icon: 'UserFilled' }
       },
-      {
-        path: 'system/menu',
-        name: 'Menu',
-        component: () => import('@/views/system/Menu.vue'),
-        meta: { title: '菜单管理', icon: 'Menu' }
-      },
+      // 菜单管理已移除
       {
         path: 'system/log',
         name: 'OperationLog',
@@ -49,14 +45,14 @@ const routes = [
       { path: 'basic/category', name: 'Category', component: () => import('@/views/basic/Category.vue'), meta: { title: '商品分类', icon: 'Folder' } },
       { path: 'basic/warehouse', name: 'Warehouse', component: () => import('@/views/basic/Warehouse.vue'), meta: { title: '仓库管理', icon: 'House' } },
       { path: 'basic/location', name: 'Location', component: () => import('@/views/basic/Location.vue'), meta: { title: '库位管理', icon: 'Grid' } },
-      { path: 'basic/supplier', name: 'Supplier', component: () => import('@/views/basic/Supplier.vue'), meta: { title: '供应商管理', icon: 'Avatar' } },
+      // 供应商管理已移除
       // 入库
       { path: 'inbound/order', name: 'InboundOrder', component: () => import('@/views/inbound/Order.vue'), meta: { title: '入库单列表', icon: 'List' } },
-      { path: 'inbound/audit', name: 'InboundAudit', component: () => import('@/views/inbound/Audit.vue'), meta: { title: '入库单审核', icon: 'CircleCheck' } },
+      // 入库审核已移除
       // 出库
       { path: 'outbound/order', name: 'OutboundOrder', component: () => import('@/views/outbound/Order.vue'), meta: { title: '出库单列表', icon: 'List' } },
-      { path: 'outbound/apply', name: 'OutboundApply', component: () => import('@/views/outbound/Apply.vue'), meta: { title: '出库申请', icon: 'EditPen' } },
-      { path: 'outbound/approval', name: 'OutboundApproval', component: () => import('@/views/outbound/Approval.vue'), meta: { title: '出库审批', icon: 'CircleCheck' } },
+      // 出库申请已合并到出库管理弹窗
+      // 出库审批已合并到出库管理列表
       // 库存
       { path: 'stock/list', name: 'StockList', component: () => import('@/views/stock/List.vue'), meta: { title: '实时库存', icon: 'Box' } },
       { path: 'stock/record', name: 'StockRecord', component: () => import('@/views/stock/Record.vue'), meta: { title: '库存流水', icon: 'Tickets' } },
@@ -83,6 +79,30 @@ router.beforeEach((to, from, next) => {
   console.log('[router] beforeEach', from.path, '->', to.path, 'token=', token ? token.substring(0, 8) + '...' : 'null')
   if (to.path === '/login') return next()
   if (!token) return next('/login')
+  // 白名单: 所有登录用户都能访问
+  const whitelist = ['/dashboard', '/profile']
+  if (whitelist.includes(to.path)) return next()
+  // 校验权限: 从 localStorage 拿 userStore.routes
+  const routesStr = localStorage.getItem('user_routes')
+  if (routesStr) {
+    try {
+      const allowed: string[] = JSON.parse(routesStr)
+      // 全部统一去掉前导 / 再比对
+      const target = to.path.replace(/^\//, '')
+      // 校验: 任意一种形式命中即通过
+      const hit = allowed.some(p => {
+        const pp = p.replace(/^\//, '')
+        return pp === target || pp === to.path || ('/' + pp) === to.path
+      })
+      if (!hit) {
+        console.warn('[router] 无权限访问', to.path, '已允许:', allowed)
+        ElMessage.error(`无权访问 ${to.path}`)
+        return next('/dashboard')
+      }
+    } catch (e) {
+      console.error('[router] 解析 user_routes 失败', e)
+    }
+  }
   next()
 })
 

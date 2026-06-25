@@ -19,15 +19,12 @@ public class CategoryController {
 
     @GetMapping("/list")
     public Result<?> list() {
-        List<Category> list = categoryMapper.selectList(null);
-        return Result.ok(buildTree(list, 0L));
-    }
-
-    private List<Category> buildTree(List<Category> all, Long parentId) {
-        return all.stream()
-                .filter(c -> c.getParentId().equals(parentId))
-                .peek(c -> c.setCategoryName(null))  // 简化:此处可扩展
-                .toList();
+        // 返回所有启用的分类(含二级),供前端字典 join 使用
+        List<Category> list = categoryMapper.selectList(
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Category>()
+                .eq(Category::getStatus, 1)
+                .orderByAsc(Category::getSort));
+        return Result.ok(list);
     }
 
     @PostMapping

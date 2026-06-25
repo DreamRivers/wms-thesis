@@ -5,11 +5,11 @@
         <span v-if="!collapse">📦 WMS 仓储</span>
         <span v-else>📦</span>
       </div>
-      <el-menu :default-active="active" :collapse="collapse" router class="menu" background-color="#001529" text-color="#fff" active-text-color="#409eff">
-        <template v-for="m in menus" :key="m.path">
-          <el-menu-item :index="m.path">
-            <el-icon><component :is="m.icon" /></el-icon>
-            <template #title>{{ m.title }}</template>
+      <el-menu :default-active="active" :collapse="collapse" class="menu" background-color="#001529" text-color="#fff" active-text-color="#409eff">
+        <template v-for="m in dynamicMenus" :key="m.path">
+          <el-menu-item :index="m.path" @click="goMenu(m)">
+            <el-icon><component :is="m.meta?.icon || 'Menu'" /></el-icon>
+            <template #title>{{ m.meta?.title || m.name }}</template>
           </el-menu-item>
         </template>
       </el-menu>
@@ -54,6 +54,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
@@ -61,29 +62,33 @@ const router = useRouter()
 const userStore = useUserStore()
 const collapse = ref(false)
 
-const menus = [
-  { path: '/dashboard', title: '首页', icon: 'HomeFilled' },
-  { path: '/system/user', title: '用户管理', icon: 'User' },
-  { path: '/system/role', title: '角色管理', icon: 'UserFilled' },
-  { path: '/basic/goods', title: '商品管理', icon: 'Goods' },
-  { path: '/basic/warehouse', title: '仓库管理', icon: 'House' },
-  { path: '/basic/location', title: '库位管理', icon: 'Grid' },
-  { path: '/inbound/order', title: '入库管理', icon: 'Upload' },
-  { path: '/outbound/order', title: '出库管理', icon: 'Download' },
-  { path: '/stock/list', title: '实时库存', icon: 'Box' },
-  { path: '/stock/warning', title: '库存预警', icon: 'Warning' },
-  { path: '/stock/taking', title: '盘点管理', icon: 'Histogram' },
-  { path: '/report/inbound', title: '报表统计', icon: 'DataAnalysis' }
-]
+// 动态菜单: 从 userStore.routes 转换, 全部拍平为一级
+const dynamicMenus = computed(() => {
+  const home = { path: '/dashboard', name: '首页', meta: { title: '首页', icon: 'HomeFilled' } }
+  const result: any[] = [home]
+  // 后端返回的树: 跳过父级, 把所有叶子节点(无children)拍平
+  const flatten = (nodes: any[]) => {
+    nodes.forEach((n: any) => {
+      if (n.path === '/dashboard') return
+      if (n.children && n.children.length) {
+        flatten(n.children)
+      } else {
+        result.push(n)
+      }
+    })
+  }
+  flatten(userStore.routes || [])
+  return result
+})
 
 const active = computed(() => route.path)
 
 // 需要被 keep-alive 缓存的页面 name
 const cachedViews = [
   'Dashboard',
-  'User', 'Role', 'Menu', 'OperationLog',
-  'Goods', 'Category', 'Warehouse', 'Location', 'Supplier',
-  'InboundOrder', 'InboundAudit',
+  'User', 'Role',
+  'Goods', 'Category', 'Warehouse', 'Location',
+  'InboundOrder',
   'OutboundOrder', 'OutboundApply', 'OutboundApproval',
   'StockList', 'StockRecord', 'StockTaking', 'StockWarning',
   'ReportInbound', 'ReportOutbound', 'ReportInventory',
@@ -94,7 +99,23 @@ onMounted(async () => {
   if (!userStore.userInfo.userId) {
     try { await userStore.loadInfo() } catch (e) {}
   }
+  // 确保菜单路由已加载
+  if (!userStore.routes || !userStore.routes.length) {
+    try { await userStore.loadRoutes() } catch (e) { console.error('loadRoutes failed', e) }
+  }
 })
+
+function goMenu(m: any) {
+  // 后端 path 是 /basic/goods, 前端路由是 basic/goods (子路由相对)
+  const p = m.path.startsWith('/') ? m.path.substring(1) : m.path
+  console.log('[goMenu] click', m.path, '->', p, 'current route:', route.path)
+  // 防止重复点击同一路径导致 reject
+  if (route.path === '/' + p) {
+    console.log('[goMenu] 已经在该页面')
+    return
+  }
+  router.push('/' + p).catch((e) => console.error('[goMenu] push error', e))
+}
 
 async function handleCommand(cmd: string) {
   if (cmd === 'logout') {

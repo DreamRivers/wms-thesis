@@ -78,11 +78,33 @@ public class SysUserController {
     }
 
     @PostMapping("/changeStatus/{id}")
-    @Log(module = "用户管理", action = "启停账号")
+    @Log(module = "用户管理", action = "启停用户")
     public Result<?> changeStatus(@PathVariable Long id, @RequestParam Integer status) {
         SysUser u = new SysUser();
         u.setId(id);
         u.setStatus(status);
+        userService.updateById(u);
+        return Result.ok();
+    }
+
+    @PostMapping("/changeMyPassword")
+    @Log(module = "个人中心", action = "修改自己的密码")
+    public Result<?> changeMyPassword(@RequestBody java.util.Map<String, String> body) {
+        String oldPwd = body.get("oldPassword");
+        String newPwd = body.get("newPassword");
+        if (StrUtil.isBlank(oldPwd) || StrUtil.isBlank(newPwd)) {
+            throw new BizException(ResultCode.PARAM_ERROR);
+        }
+        if (newPwd.length() < 6) throw new BizException(ResultCode.PARAM_ERROR);
+        // 当前登录用户
+        Long uid = cn.dev33.satoken.stp.StpUtil.getLoginIdAsLong();
+        SysUser u = userService.getById(uid);
+        if (u == null) throw new BizException(ResultCode.DATA_NOT_FOUND);
+        BCryptPasswordEncoder enc = new BCryptPasswordEncoder();
+        if (!enc.matches(oldPwd, u.getPassword())) {
+            throw new BizException(ResultCode.PARAM_ERROR.getCode(), "原密码错误");
+        }
+        u.setPassword(enc.encode(newPwd));
         userService.updateById(u);
         return Result.ok();
     }

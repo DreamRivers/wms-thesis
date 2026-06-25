@@ -13,7 +13,7 @@ from docx.enum.section import WD_SECTION
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
-OUT = r"C:\Users\meng\Desktop\wms-graduation\docs\02-毕业论文.docx"
+OUT = r"C:\Users\meng\Desktop\wms-graduation\docs\02-毕业论文_新版.docx"
 SRC = r"C:\Users\meng\Desktop\wms-graduation\docs\02-毕业论文.md"
 
 F_HEI = "黑体"

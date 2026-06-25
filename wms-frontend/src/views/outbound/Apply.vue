@@ -55,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { applyOutbound } from '@/api/outbound/order'
@@ -86,5 +86,16 @@ onMounted(async () => {
     const l: any = await listLocationsByWarehouse(form.warehouseId)
     locations.value = l.data
   }
+})
+
+// 选仓库时, 重新加载库位
+watch(() => form.warehouseId, async (newId) => {
+  if (newId) {
+    const l: any = await listLocationsByWarehouse(newId)
+    locations.value = l.data
+  } else {
+    locations.value = []
+  }
+  form.items.forEach((it: any) => { it.locationId = null })
 })
 </script>
